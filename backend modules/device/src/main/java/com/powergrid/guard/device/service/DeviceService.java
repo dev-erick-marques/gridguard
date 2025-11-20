@@ -1,0 +1,35 @@
+package com.powergrid.guard.device.service;
+
+import com.powergrid.guard.device.dto.DeviceStatusDTO;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
+@Service
+@EnableScheduling
+public class DeviceService {
+
+    private final RestTemplate http = new RestTemplate();
+
+    @Scheduled(fixedRate = 2000)
+    public void sendHeartbeat() {
+        DeviceStatusDTO dto = new DeviceStatusDTO(
+                "device-1",
+                220,
+                0,
+                Instant.now().truncatedTo(ChronoUnit.MILLIS),
+                "signature",
+                "public-key"
+        );
+        http.postForEntity(
+                "http://localhost:8081/coordinator/heartbeat",
+                dto,
+                Void.class
+        );
+
+    }
+}
