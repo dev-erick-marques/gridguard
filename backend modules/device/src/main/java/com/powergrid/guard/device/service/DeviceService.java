@@ -4,6 +4,7 @@ import com.powergrid.guard.device.dto.DeviceStatusDTO;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
@@ -25,11 +26,15 @@ public class DeviceService {
                 "signature",
                 "public-key"
         );
-        http.postForEntity(
-                "http://localhost:8081/coordinator/heartbeat",
-                dto,
-                Void.class
-        );
+         try {
+             http.postForEntity(
+                     "http://localhost:8081/coordinator/heartbeat",
+                     dto,
+                     Void.class
+             );
+         } catch (RestClientException e) {
+             System.out.println("Failed to send heartbeat");
+         }
 
     }
 }
