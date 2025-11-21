@@ -10,6 +10,7 @@ public record DeviceStatusPayloadDTO(
         double voltage,
         DeviceStatus status,
         DeviceReason reason,
+        String deviceAddress,
         Instant timestamp
 ) {}
 

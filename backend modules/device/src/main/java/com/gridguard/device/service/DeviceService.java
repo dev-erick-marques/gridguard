@@ -8,6 +8,7 @@ import com.gridguard.device.dto.SignedStatusDTO;
 import com.gridguard.device.enums.CommandStatus;
 import com.gridguard.device.enums.DeviceReason;
 import com.gridguard.device.enums.DeviceStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -35,8 +36,9 @@ public class DeviceService {
     private final AtomicReference<DeviceReason> reason = new AtomicReference<>(DeviceReason.NONE);
     private final AtomicReference<DeviceStatus> status = new AtomicReference<>(DeviceStatus.NORMAL_OPERATION);
     private final AtomicReference<Boolean> rainShockEmitted = new AtomicReference<>(false);
-
     private final KeyPair keyPair;
+    @Value("app.device.address")
+    private String deviceAddress;
 
     public DeviceService() {
         try {
@@ -93,10 +95,11 @@ public class DeviceService {
                 voltage,
                 status.get(),
                 reason.get(),
+                deviceAddress,
                 Instant.now().truncatedTo(ChronoUnit.MILLIS)
         );
 
-        String signingContent = payload.deviceId() + "|" + payload.voltage() + "|" + payload.status() + "|" + payload.reason() + "|" + payload.timestamp();
+        String signingContent = payload.deviceId() + "|" + payload.voltage() + "|" + payload.status() + "|" + payload.reason() + "|" + payload.timestamp() + deviceAddress;
         SignedData signedData = signer.sign(signingContent, keyPair.getPrivate(), keyPair.getPublic());
 
         return new SignedStatusDTO(payload, signedData.publicKey(), signedData.signature());
