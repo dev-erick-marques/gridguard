@@ -17,26 +17,33 @@ public class DeviceService {
 
     private final RestTemplate http = new RestTemplate();
     private final Random rand = new Random();
+    private static final String DEVICE_ID = "device-1";
+    private static final String HEARTBEAT_ENDPOINT = "http://localhost:8080/coordinator/heartbeat";
+    private static final long HEARTBEAT_INTERVAL_MS = 2000;
+    private static final double BASE_VOLTAGE = 220.0;
+    private static final double VOLTAGE_VARIATION = 5.0;
 
-    @Scheduled(fixedRate = 2000)
+    @Scheduled(fixedRate = HEARTBEAT_INTERVAL_MS)
     public void sendHeartbeat() {
-        DeviceStatusDTO dto = new DeviceStatusDTO(
-                "device-1",
-                220 + (rand.nextDouble() - 0.5) * 5,
+        DeviceStatusDTO heartbeat = buildHeartbeatPayload();
+
+        try {
+            http.postForEntity(HEARTBEAT_ENDPOINT, heartbeat, Void.class);
+        } catch (RestClientException e) {
+            System.err.println("Failed to send heartbeat");
+        }
+    }
+
+    private DeviceStatusDTO buildHeartbeatPayload() {
+        double voltage = BASE_VOLTAGE + (rand.nextDouble() - 0.5) * VOLTAGE_VARIATION;
+
+        return new DeviceStatusDTO(
+                DEVICE_ID,
+                voltage,
                 0,
                 Instant.now().truncatedTo(ChronoUnit.MILLIS),
                 "signature",
                 "public-key"
         );
-         try {
-             http.postForEntity(
-                     "http://localhost:8080/coordinator/heartbeat",
-                     dto,
-                     Void.class
-             );
-         } catch (RestClientException e) {
-             System.out.println("Failed to send heartbeat");
-         }
-
     }
 }
