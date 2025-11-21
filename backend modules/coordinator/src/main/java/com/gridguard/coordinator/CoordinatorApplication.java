@@ -1,4 +1,4 @@
-package com.powergrid.guard.coordinator;
+package com.gridguard.coordinator;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
