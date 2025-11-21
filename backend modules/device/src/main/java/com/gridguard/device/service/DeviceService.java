@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Random;
@@ -24,6 +26,18 @@ public class DeviceService {
     private static final long HEARTBEAT_INTERVAL_MS = 2000;
     private static final double BASE_VOLTAGE = 220.0;
     private static final double VOLTAGE_VARIATION = 5.0;
+
+    private final KeyPair keyPair;
+
+    public DeviceService() {
+        try {
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+            kpg.initialize(2048);
+            this.keyPair = kpg.generateKeyPair();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate key pair", e);
+        }
+    }
 
     @Scheduled(fixedRate = HEARTBEAT_INTERVAL_MS)
     public void sendHeartbeat() {
@@ -45,6 +59,6 @@ public class DeviceService {
                 voltage,
                 Instant.now().truncatedTo(ChronoUnit.MILLIS)
         );
-        return signer.sign(payload);
+        return signer.sign(payload, keyPair.getPrivate(), keyPair.getPublic());
     }
 }
