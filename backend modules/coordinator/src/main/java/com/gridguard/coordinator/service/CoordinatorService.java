@@ -19,6 +19,7 @@ public class CoordinatorService {
     private final Cache<String, Deque<DeviceStatusPayloadDTO>> cache;
     private final CryptoUtils cryptoUtils;
     private static final int MAX_RECORDS = 10;
+    private static final double VARIATION_THRESHOLD_PERCENT = 3.0;
 
     public CoordinatorService(
             Cache<String, Deque<DeviceStatusPayloadDTO>> cache, CryptoUtils cryptoUtils
@@ -53,6 +54,11 @@ public class CoordinatorService {
                     double variationPercent = (stats.std / stats.mean) * 100.0;
 
                     return new DeviceMetricsDTO(deviceId, stats.mean, stats.std, variationPercent);
+                })
+                .peek(dto -> {
+                    if (dto.variationPercent() >= VARIATION_THRESHOLD_PERCENT) {
+                        System.out.println("[Instability] Trigger: SAFE SHUTDOWN for " + dto.deviceId());
+                    }
                 })
                 .toList();
 
