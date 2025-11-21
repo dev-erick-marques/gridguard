@@ -3,6 +3,7 @@ package com.gridguard.device.service;
 import com.gridguard.device.crypto.StatusSigner;
 import com.gridguard.device.dto.CommandRequestDTO;
 import com.gridguard.device.dto.DeviceStatusPayloadDTO;
+import com.gridguard.device.dto.SignedData;
 import com.gridguard.device.dto.SignedStatusDTO;
 import com.gridguard.device.enums.CommandStatus;
 import com.gridguard.device.enums.DeviceReason;
@@ -33,6 +34,7 @@ public class DeviceService {
     private static final double VOLTAGE_VARIATION = 5.0;
     private final AtomicReference<DeviceReason> reason = new AtomicReference<>(DeviceReason.NONE);
     private final AtomicReference<DeviceStatus> status = new AtomicReference<>(DeviceStatus.NORMAL_OPERATION);
+    private final AtomicReference<Boolean> rainShockEmitted = new AtomicReference<>(false);
 
     private final KeyPair keyPair;
 
@@ -59,7 +61,12 @@ public class DeviceService {
 
     public void applyCommand(CommandRequestDTO command) {
         switch (command.reason()) {
-            case STORM -> reason.set(DeviceReason.STORM);
+            case STORM -> {
+                if (reason.get() != DeviceReason.STORM) {
+                    rainShockEmitted.set(false);
+                }
+                reason.set(DeviceReason.STORM);
+            }
             case INSTABILITY -> reason.set(DeviceReason.INSTABILITY);
         }
 
@@ -75,12 +82,23 @@ public class DeviceService {
     private SignedStatusDTO buildHeartbeatPayload() {
         StatusSigner signer = new StatusSigner();
         double voltage = BASE_VOLTAGE + (rand.nextDouble() - 0.5) * VOLTAGE_VARIATION;
-
+        if (reason.get() == DeviceReason.STORM) {
+            if (!rainShockEmitted.get()) {
+                voltage = 10_000 + rand.nextInt(10_000);
+                rainShockEmitted.set(true);
+            }
+        }
         DeviceStatusPayloadDTO payload = new DeviceStatusPayloadDTO(
                 DEVICE_ID,
                 voltage,
+                status.get(),
+                reason.get(),
                 Instant.now().truncatedTo(ChronoUnit.MILLIS)
         );
-        return signer.sign(payload, keyPair.getPrivate(), keyPair.getPublic());
+
+        String signingContent = payload.deviceId() + "|" + payload.voltage() + "|" + payload.status() + "|" + payload.reason() + "|" + payload.timestamp();
+        SignedData signedData = signer.sign(signingContent, keyPair.getPrivate(), keyPair.getPublic());
+
+        return new SignedStatusDTO(payload, signedData.publicKey(), signedData.signature());
     }
 }
