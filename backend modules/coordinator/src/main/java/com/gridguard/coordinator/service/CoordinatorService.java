@@ -2,15 +2,15 @@ package com.gridguard.coordinator.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.gridguard.coordinator.crypto.CryptoUtils;
+import com.gridguard.coordinator.dto.DeviceMetricsDTO;
 import com.gridguard.coordinator.dto.DeviceStatusPayloadDTO;
+import com.gridguard.coordinator.dto.DevicesMetricsResponseDTO;
 import com.gridguard.coordinator.dto.SignedStatusDTO;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Deque;
+import java.util.*;
 
 
 @Service
@@ -41,14 +41,39 @@ public class CoordinatorService {
     }
     @Scheduled(fixedDelay = 10000L)
     public void evaluateAllDevicesForInstability() {
-        cache.asMap().forEach((deviceId, history) -> {
-            System.out.println("[Evaluating] Device " + deviceId + " with " + history.size() + " records");
-        });
+        List<DeviceMetricsDTO> metricsList = cache.asMap().entrySet().stream()
+                .filter(entry -> entry.getValue().size() >= MAX_RECORDS)
+                .map(entry -> {
+                    String deviceId = entry.getKey();
+                    double[] voltages = entry.getValue().stream()
+                            .mapToDouble(DeviceStatusPayloadDTO::voltage)
+                            .toArray();
+
+                    Stats stats = computeStats(voltages);
+                    double variationPercent = (stats.std / stats.mean) * 100.0;
+
+                    return new DeviceMetricsDTO(deviceId, stats.mean, stats.std, variationPercent);
+                })
+                .toList();
+
+        System.out.println(new DevicesMetricsResponseDTO(metricsList));
+
     }
 
-    private void computeStats(double[] values) {
-        System.out.println("[Computing Stats] " + Arrays.toString(values));
+    private Stats computeStats(double[] values) {
+        DoubleSummaryStatistics dss = Arrays.stream(values).summaryStatistics();
+        double mean = dss.getAverage();
+
+        double variance = Arrays.stream(values)
+                .map(v -> Math.pow(v - mean, 2))
+                .sum() / values.length;
+
+        double std = Math.sqrt(variance);
+
+        return new Stats(mean, std);
     }
+    private record Stats(double mean, double std) {}
+
     public void validateSignature(SignedStatusDTO dto){
         var payloadDto = dto.payload();
         String signingContent = payloadDto.deviceId() + "|" + payloadDto.voltage() + "|" + payloadDto.timestamp();
