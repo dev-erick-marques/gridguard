@@ -28,7 +28,7 @@ public class DeviceService {
         );
          try {
              http.postForEntity(
-                     "http://localhost:8081/coordinator/heartbeat",
+                     "http://localhost:8080/coordinator/heartbeat",
                      dto,
                      Void.class
              );
