@@ -1,6 +1,9 @@
 package com.gridguard.device.controller;
 
 import com.gridguard.device.dto.CommandRequestDTO;
+import com.gridguard.device.enums.CommandStatus;
+import com.gridguard.device.service.DeviceService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -9,17 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/device")
+@RequiredArgsConstructor
 public class DeviceController {
+    private final DeviceService deviceService;
 
-    @PostMapping("/shutdown")
-    public ResponseEntity<String> safeShutdown(@RequestBody CommandRequestDTO dto) {
-        System.out.println(dto);
-        return ResponseEntity.ok("Safe shutdown initiated");
-    }
-
-    @PostMapping("/restart")
-    public ResponseEntity<String> safeRestart(@RequestBody CommandRequestDTO dto) {
-        System.out.println(dto);
-        return ResponseEntity.ok("Safe restart initiated");
+    @PostMapping("/command")
+    public ResponseEntity<CommandStatus> receiveCommand(@RequestBody CommandRequestDTO dto) {
+        deviceService.applyCommand(dto);
+        return ResponseEntity.ok(dto.command());
     }
 }
