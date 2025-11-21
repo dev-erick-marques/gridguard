@@ -1,5 +1,5 @@
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -9,8 +9,19 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
+interface DeviceData {
+  deviceId: string;
+  voltage: number;
+  std: number;
+  variationPercent: number;
+}
+
+interface DevicesPayload {
+  devices: DeviceData[];
+}
 
 export function App() {
+  const [chartData, setChartData] = useState<Record<string, { time: string; voltage: number }[]>>({});
   const getCurrentTime = () => {
     const now = new Date();
     return `${now.getHours().toString().padStart(2, "0")}:${now
@@ -18,15 +29,37 @@ export function App() {
       .toString()
       .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
   };
-  const [chartData, setChartData] = useState<
-    Record<string, { time: string; voltage: number }[]>
-  >({
-    chart1: [],
-    chart2: [],
-    chart3: [],
-    chart4: [],
-    chart5: [],
-  });
+
+useEffect(() => {
+  const eventSource = new EventSource(
+    "http://localhost:8080/coordinator/stream"
+  );
+
+  eventSource.onmessage = (event) => {
+    const payload: DevicesPayload = JSON.parse(event.data);
+    console.log(payload);
+
+    setChartData((prevData) => {
+      const newData = { ...prevData };
+
+      payload.devices.forEach((device) => {
+        const current = [...(newData[device.deviceId] || [])];
+        if (current.length >= 10) current.shift(); // manter histórico de 10
+
+        current.push({
+          time: getCurrentTime(),
+          voltage: Number(device.voltage), // garante que é número
+        });
+
+        newData[device.deviceId] = current;
+      });
+
+      return newData;
+    });
+  };
+
+  return () => eventSource.close();
+}, []);
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
