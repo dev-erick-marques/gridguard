@@ -3,10 +3,15 @@ package com.gridguard.coordinator.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.gridguard.coordinator.crypto.CryptoUtils;
 import com.gridguard.coordinator.dto.*;
+import com.gridguard.coordinator.enums.Commands;
+import com.gridguard.coordinator.enums.DeviceReason;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 
@@ -18,6 +23,7 @@ public class CoordinatorService {
     private static final int MAX_RECORDS = 5;
     private static final double VARIATION_THRESHOLD_PERCENT = 3.0;
     private final Map<String, Integer> stableCounts = new HashMap<>();
+    private final RestTemplate restTemplate = new RestTemplate();
 
     public CoordinatorService(
             Cache<String, Deque<DeviceStatusPayloadDTO>> cache, CryptoUtils cryptoUtils
@@ -65,6 +71,7 @@ public class CoordinatorService {
 
                     if (variationPercent >= VARIATION_THRESHOLD_PERCENT) {
                         stableCounts.put(deviceId, 0);
+                        if (!dto.isShutdown()) postDeviceCommand(dto.deviceId(), dto.deviceAddress(), Commands.SAFE_SHUTDOWN, DeviceReason.INSTABILITY);
                     } else {
                         if (dto.isShutdown()) {
                             int count = stableCounts.getOrDefault(deviceId, 0) + 1;
@@ -72,6 +79,7 @@ public class CoordinatorService {
 
                             if (count >= 10) {
                                 System.out.println("Device stable for 10 cycles → sending SAFE_RESTART: " + deviceId);
+                                postDeviceCommand(dto.deviceId(), dto.deviceAddress(), Commands.SAFE_RESTART, DeviceReason.NONE);
                                 stableCounts.put(deviceId, 0);
                             }
                         } else {
@@ -107,5 +115,10 @@ public class CoordinatorService {
         if (!isValid) {
             throw new RuntimeException("Payload is not valid");
         }
+    }
+    private void postDeviceCommand(String deviceId, String address, Commands command, DeviceReason reason){
+        CommandDTO payload =  new CommandDTO(deviceId,command,reason, Instant.now().truncatedTo(ChronoUnit.MILLIS));
+        SignedCommandDTO signed = new SignedCommandDTO(payload, "Signature-123", "PublicKey-123");
+        restTemplate.postForEntity(address, payload, Void.class);
     }
 }
