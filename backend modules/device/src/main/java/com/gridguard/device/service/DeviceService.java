@@ -30,14 +30,15 @@ public class DeviceService {
     private final Random rand = new Random();
     private static final String DEVICE_ID = "device-1";
     private static final String HEARTBEAT_ENDPOINT = "http://localhost:8080/coordinator/heartbeat";
-    private static final long HEARTBEAT_INTERVAL_MS = 2000;
+    private static final long HEARTBEAT_INTERVAL_MS = 1000;
     private static final double BASE_VOLTAGE = 220.0;
-    private static final double VOLTAGE_VARIATION = 5.0;
+    private static final double VOLTAGE_VARIATION = 40.0;
     private final AtomicReference<DeviceReason> reason = new AtomicReference<>(DeviceReason.NONE);
     private final AtomicReference<DeviceStatus> status = new AtomicReference<>(DeviceStatus.NORMAL_OPERATION);
     private final AtomicReference<Boolean> rainShockEmitted = new AtomicReference<>(false);
     private final KeyPair keyPair;
-    @Value("app.device.address")
+
+    @Value("${app.device.address}")
     private String deviceAddress;
 
     public DeviceService() {
