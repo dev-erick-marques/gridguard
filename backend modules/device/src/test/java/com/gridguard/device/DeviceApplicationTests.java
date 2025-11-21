@@ -1,4 +1,4 @@
-package com.powergrid.guard.device;
+package com.gridguard.device;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

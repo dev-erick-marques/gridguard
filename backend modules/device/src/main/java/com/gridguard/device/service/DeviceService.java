@@ -1,6 +1,6 @@
-package com.powergrid.guard.device.service;
+package com.gridguard.device.service;
 
-import com.powergrid.guard.device.dto.DeviceStatusDTO;
+import com.gridguard.device.dto.DeviceStatusDTO;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;

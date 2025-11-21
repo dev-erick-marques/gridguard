@@ -1,4 +1,4 @@
-package com.powergrid.guard.device.dto;
+package com.gridguard.device.dto;
 
 import java.time.Instant;
 
