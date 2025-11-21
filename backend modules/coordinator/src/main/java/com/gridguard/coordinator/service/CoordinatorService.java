@@ -18,7 +18,7 @@ import java.util.*;
 public class CoordinatorService {
     private final Cache<String, Deque<DeviceStatusPayloadDTO>> cache;
     private final CryptoUtils cryptoUtils;
-    private static final int MAX_RECORDS = 10;
+    private static final int MAX_RECORDS = 5;
     private static final double VARIATION_THRESHOLD_PERCENT = 3.0;
 
     public CoordinatorService(
@@ -40,7 +40,7 @@ public class CoordinatorService {
         }
         history.addLast(dto);
     }
-    @Scheduled(fixedDelay = 10000L)
+    @Scheduled(fixedDelay = 5000L)
     public void evaluateAllDevicesForInstability() {
         List<DeviceMetricsDTO> metricsList = cache.asMap().entrySet().stream()
                 .filter(entry -> entry.getValue().size() >= MAX_RECORDS)
@@ -81,8 +81,8 @@ public class CoordinatorService {
     private record Stats(double mean, double std) {}
 
     public void validateSignature(SignedStatusDTO dto){
-        var payloadDto = dto.payload();
-        String signingContent = payloadDto.deviceId() + "|" + payloadDto.voltage() + "|" + payloadDto.timestamp();
+        var payload = dto.payload();
+        String signingContent = payload.deviceId() + "|" + payload.voltage() + "|" + payload.status() + "|" + payload.reason() + "|" + payload.timestamp() + payload.deviceAddress();
 
         boolean isValid = cryptoUtils.validate(signingContent, dto.signature(), dto.publicKey());
         if (!isValid) {
