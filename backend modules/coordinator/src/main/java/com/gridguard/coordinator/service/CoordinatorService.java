@@ -5,6 +5,7 @@ import com.gridguard.coordinator.crypto.CryptoUtils;
 import com.gridguard.coordinator.dto.*;
 import com.gridguard.coordinator.enums.Commands;
 import com.gridguard.coordinator.enums.DeviceReason;
+import lombok.Setter;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,9 @@ public class CoordinatorService {
     private static final double VARIATION_THRESHOLD_PERCENT = 3.0;
     private final Map<String, Integer> stableCounts = new HashMap<>();
     private final RestTemplate restTemplate = new RestTemplate();
+    @Setter
+    private boolean isShutdown = false;
+
 
     public CoordinatorService(
             Cache<String, Deque<DeviceStatusPayloadDTO>> cache, CryptoUtils cryptoUtils
@@ -60,7 +64,9 @@ public class CoordinatorService {
 
                     DeviceStatusPayloadDTO latest = history.peekLast();
                     assert latest != null;
-                    boolean isShutdown = latest.status().equalsIgnoreCase("SHUTDOWN");
+                    if(!isShutdown) setShutdown(latest.status().equalsIgnoreCase("SHUTDOWN"));
+                    System.out.println(isShutdown);
+                    System.out.println(latest.status());
                     String deviceAddress = latest.deviceAddress();
 
                     return new DeviceMetricsWithInfo(deviceId, stats.mean, stats.std, variationPercent, isShutdown, deviceAddress);
@@ -71,7 +77,10 @@ public class CoordinatorService {
 
                     if (variationPercent >= VARIATION_THRESHOLD_PERCENT) {
                         stableCounts.put(deviceId, 0);
-                        if (!dto.isShutdown()) postDeviceCommand(dto.deviceId(), dto.deviceAddress(), Commands.SAFE_SHUTDOWN, DeviceReason.INSTABILITY);
+                        if (!dto.isShutdown()){;
+                            postDeviceCommand(dto.deviceId(), dto.deviceAddress(), Commands.SAFE_SHUTDOWN, DeviceReason.INSTABILITY);
+                            setShutdown(true);
+                        }
                     } else {
                         if (dto.isShutdown()) {
                             int count = stableCounts.getOrDefault(deviceId, 0) + 1;
@@ -117,8 +126,8 @@ public class CoordinatorService {
         }
     }
     private void postDeviceCommand(String deviceId, String address, Commands command, DeviceReason reason){
-        CommandDTO payload =  new CommandDTO(deviceId,command,reason, Instant.now().truncatedTo(ChronoUnit.MILLIS));
+        CommandDTO payload =  new CommandDTO(deviceId, command, reason, Instant.now().truncatedTo(ChronoUnit.MILLIS));
         SignedCommandDTO signed = new SignedCommandDTO(payload, "Signature-123", "PublicKey-123");
-        restTemplate.postForEntity(address, payload, Void.class);
+        restTemplate.postForEntity(address, signed, Void.class);
     }
 }
