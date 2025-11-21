@@ -1,13 +1,17 @@
 package com.gridguard.coordinator.controller;
 
 
+import com.gridguard.coordinator.dto.DevicesMetricsResponseDTO;
 import com.gridguard.coordinator.dto.SignedStatusDTO;
 import com.gridguard.coordinator.service.CoordinatorService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+
+import java.time.Duration;
+import java.util.List;
 
 @RestController
 @RequestMapping("/coordinator")
@@ -19,5 +23,18 @@ public class CoordinatorController {
     public void receiveHeartbeat(@RequestBody SignedStatusDTO heartbeat){
         coordinatorService.validateSignature(heartbeat);
         coordinatorService.process(heartbeat.payload());
+    }
+    private volatile DevicesMetricsResponseDTO latestMetrics = new DevicesMetricsResponseDTO(List.of());
+
+
+    @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<DevicesMetricsResponseDTO> streamMetrics() {
+        return Flux.interval(Duration.ofSeconds(5))
+                .map(tick -> latestMetrics);
+    }
+
+    @Scheduled(fixedRate = 5000)
+    public void refreshMetrics() {
+        latestMetrics = coordinatorService.evaluateAllDevicesForInstability();
     }
 }

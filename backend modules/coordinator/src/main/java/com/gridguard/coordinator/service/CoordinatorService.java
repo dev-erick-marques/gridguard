@@ -59,7 +59,7 @@ public class CoordinatorService {
         history.addLast(dto);
     }
     @Scheduled(fixedDelay = 5000L)
-    public void evaluateAllDevicesForInstability() {
+    public DevicesMetricsResponseDTO evaluateAllDevicesForInstability() {
         List<DeviceMetricsDTO> metricsList = cache.asMap().entrySet().stream()
                 .filter(entry -> entry.getValue().size() >= MAX_RECORDS)
                 .map(entry -> {
@@ -108,7 +108,7 @@ public class CoordinatorService {
                 }).map(e -> new DeviceMetricsDTO(e.deviceId(), e.mean(), e.std(), e.variationPercent()))
                 .toList();
 
-        System.out.println(new DevicesMetricsResponseDTO(metricsList));
+        return new DevicesMetricsResponseDTO(metricsList);
 
     }
 
