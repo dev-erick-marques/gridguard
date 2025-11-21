@@ -1,6 +1,7 @@
 package com.gridguard.device.enums;
 
-public enum ValidReasons {
+public enum DeviceReason {
     INSTABILITY,
-    STORM
+    STORM,
+    NONE
 }

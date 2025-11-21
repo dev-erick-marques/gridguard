@@ -1,6 +1,6 @@
 package com.gridguard.device.enums;
 
-public enum ValidCommands {
+public enum CommandStatus {
     SAFE_RESTART,
     SAFE_SHUTDOWN
 }
