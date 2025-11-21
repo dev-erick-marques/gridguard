@@ -11,6 +11,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -27,6 +29,7 @@ public class CoordinatorService {
     private final RestTemplate restTemplate = new RestTemplate();
     @Setter
     private boolean isShutdown = false;
+    private final KeyPair keyPair;
 
 
     public CoordinatorService(
@@ -34,6 +37,13 @@ public class CoordinatorService {
     ) {
         this.cache = cache;
         this.cryptoUtils = cryptoUtils;
+        try {
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+            kpg.initialize(2048);
+            this.keyPair = kpg.generateKeyPair();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate key pair", e);
+        }
     }
 
     public void process(DeviceStatusPayloadDTO dto) {
@@ -127,7 +137,11 @@ public class CoordinatorService {
     }
     private void postDeviceCommand(String deviceId, String address, Commands command, DeviceReason reason){
         CommandDTO payload =  new CommandDTO(deviceId, command, reason, Instant.now().truncatedTo(ChronoUnit.MILLIS));
-        SignedCommandDTO signed = new SignedCommandDTO(payload, "Signature-123", "PublicKey-123");
+
+        String payloadString = payload.deviceId() + "|" + payload.command() + "|" + payload.reason() + "|" + payload.timestamp();
+        SignedData sign = cryptoUtils.sign(payloadString, keyPair.getPrivate(), keyPair.getPublic());
+        SignedCommandDTO signed = new SignedCommandDTO(payload, sign.signature(), sign.publicKey());
+
         restTemplate.postForEntity(address, signed, Void.class);
     }
 }
