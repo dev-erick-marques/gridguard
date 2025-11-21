@@ -1,6 +1,8 @@
 package com.gridguard.device.service;
 
+import com.gridguard.device.crypto.StatusSigner;
 import com.gridguard.device.dto.DeviceStatusPayloadDTO;
+import com.gridguard.device.dto.SignedStatusDTO;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -25,7 +27,7 @@ public class DeviceService {
 
     @Scheduled(fixedRate = HEARTBEAT_INTERVAL_MS)
     public void sendHeartbeat() {
-        DeviceStatusPayloadDTO heartbeat = buildHeartbeatPayload();
+        SignedStatusDTO heartbeat = buildHeartbeatPayload();
 
         try {
             http.postForEntity(HEARTBEAT_ENDPOINT, heartbeat, Void.class);
@@ -34,13 +36,15 @@ public class DeviceService {
         }
     }
 
-    private DeviceStatusPayloadDTO buildHeartbeatPayload() {
+    private SignedStatusDTO buildHeartbeatPayload() {
+        StatusSigner signer = new StatusSigner();
         double voltage = BASE_VOLTAGE + (rand.nextDouble() - 0.5) * VOLTAGE_VARIATION;
 
-        return new DeviceStatusPayloadDTO(
+        DeviceStatusPayloadDTO payload = new DeviceStatusPayloadDTO(
                 DEVICE_ID,
                 voltage,
                 Instant.now().truncatedTo(ChronoUnit.MILLIS)
         );
+        return signer.sign(payload);
     }
 }
