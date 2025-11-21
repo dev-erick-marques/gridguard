@@ -1,13 +1,11 @@
 package com.gridguard.device.service;
 
-import com.gridguard.device.crypto.StatusSigner;
-import com.gridguard.device.dto.CommandRequestDTO;
-import com.gridguard.device.dto.DeviceStatusPayloadDTO;
-import com.gridguard.device.dto.SignedData;
-import com.gridguard.device.dto.SignedStatusDTO;
+import com.gridguard.device.crypto.CryptoUtils;
+import com.gridguard.device.dto.*;
 import com.gridguard.device.enums.CommandStatus;
 import com.gridguard.device.enums.DeviceReason;
 import com.gridguard.device.enums.DeviceStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -37,11 +35,13 @@ public class DeviceService {
     private final AtomicReference<DeviceStatus> status = new AtomicReference<>(DeviceStatus.NORMAL_OPERATION);
     private final AtomicReference<Boolean> rainShockEmitted = new AtomicReference<>(false);
     private final KeyPair keyPair;
+    private final CryptoUtils cryptoUtils;
 
     @Value("${app.device.address}")
     private String deviceAddress;
 
-    public DeviceService() {
+    public DeviceService(CryptoUtils cryptoUtils) {
+        this.cryptoUtils = cryptoUtils;
         try {
             KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
             kpg.initialize(2048);
@@ -83,7 +83,6 @@ public class DeviceService {
     }
 
     private SignedStatusDTO buildHeartbeatPayload() {
-        StatusSigner signer = new StatusSigner();
         double voltage = BASE_VOLTAGE + (rand.nextDouble() - 0.5) * VOLTAGE_VARIATION;
         if (reason.get() == DeviceReason.STORM) {
             if (!rainShockEmitted.get()) {
@@ -101,8 +100,17 @@ public class DeviceService {
         );
 
         String signingContent = payload.deviceId() + "|" + payload.voltage() + "|" + payload.status() + "|" + payload.reason() + "|" + payload.timestamp() + deviceAddress;
-        SignedData signedData = signer.sign(signingContent, keyPair.getPrivate(), keyPair.getPublic());
+        SignedData signedData = cryptoUtils.sign(signingContent, keyPair.getPrivate(), keyPair.getPublic());
 
         return new SignedStatusDTO(payload, signedData.publicKey(), signedData.signature());
+    }
+    public void validateSignature(SignedCommandDTO dto){
+        var payload = dto.payload();
+        String signingContent = payload.deviceId() + "|" + payload.command() + "|" + payload.reason() + "|" + payload.timestamp();
+
+        boolean isValid = cryptoUtils.validate(signingContent, dto.signature(), dto.publicKey());
+        if (!isValid) {
+            throw new RuntimeException("Payload is not valid");
+        }
     }
 }

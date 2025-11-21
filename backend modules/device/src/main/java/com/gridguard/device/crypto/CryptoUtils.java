@@ -1,6 +1,7 @@
 package com.gridguard.device.crypto;
 
 import com.gridguard.device.dto.SignedData;
+import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -10,6 +11,7 @@ import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
+@Component
 public class CryptoUtils {
     public boolean validate(String payload, String signature, String publicKey) {
         try {

@@ -19,6 +19,7 @@ public class DeviceController {
 
     @PostMapping("/command")
     public ResponseEntity<CommandStatus> receiveCommand(@RequestBody SignedCommandDTO dto) {
+        deviceService.validateSignature(dto);
         deviceService.applyCommand(dto.payload());
         return ResponseEntity.ok(dto.payload().command());
     }
