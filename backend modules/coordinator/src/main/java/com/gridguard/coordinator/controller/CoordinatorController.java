@@ -17,6 +17,7 @@ public class CoordinatorController {
 
     @PostMapping("/heartbeat")
     public void receiveHeartbeat(@RequestBody SignedStatusDTO heartbeat){
+        coordinatorService.validateSignature(heartbeat);
         coordinatorService.process(heartbeat.payload());
     }
 }
