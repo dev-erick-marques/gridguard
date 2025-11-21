@@ -1,12 +1,12 @@
 package com.gridguard.device.dto;
 
-import com.gridguard.device.enums.ValidCommands;
-import com.gridguard.device.enums.ValidReasons;
+import com.gridguard.device.enums.CommandStatus;
+import com.gridguard.device.enums.DeviceReason;
 
 public record CommandRequestDTO(
         String deviceId,
-        ValidCommands command,
-        ValidReasons reason,
+        CommandStatus command,
+        DeviceReason reason,
         long timestamp,
         String signature,
         String publicKey
