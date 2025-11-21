@@ -36,6 +36,12 @@ public class CoordinatorService {
         history.addLast(dto);
     }
     public void validateSignature(SignedStatusDTO dto){
-        cryptoUtils.validate();
+        var payloadDto = dto.payload();
+        String signingContent = payloadDto.deviceId() + "|" + payloadDto.voltage() + "|" + payloadDto.timestamp();
+
+        boolean isValid = cryptoUtils.validate(signingContent, dto.signature(), dto.publicKey());
+        if (!isValid) {
+            throw new RuntimeException("Payload is not valid");
+        }
     }
 }
