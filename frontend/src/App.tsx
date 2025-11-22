@@ -124,7 +124,7 @@ export function App() {
           return (
             <div key={chartKey} className="chart-card">
               <div className="chart-header">
-                <h3 className="chart-title">{data[data.length - 1].voltage}</h3>
+                <h3 className="chart-title">{data[data.length - 1].deviceName}</h3>
                 <div className="chart-stats">
                   <span className="stat-label">Atual:</span>
                   <span className="stat-value">

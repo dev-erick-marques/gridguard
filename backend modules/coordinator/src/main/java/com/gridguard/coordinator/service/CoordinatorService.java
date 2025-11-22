@@ -114,7 +114,7 @@ public class CoordinatorService {
                         }
                     }
                 }).map(e -> {
-                    DeviceMetricsDTO metricsDTO = new DeviceMetricsDTO(e.deviceName(), e.deviceId(), e.mean(), e.std(), e.variationPercent(), Instant.now().truncatedTo(ChronoUnit.MILLIS));
+                    DeviceMetricsDTO metricsDTO = new DeviceMetricsDTO( e.deviceId(), e.deviceName(), e.mean(), e.std(), e.variationPercent(), Instant.now().truncatedTo(ChronoUnit.MILLIS));
                     addComputedMetric(metricsDTO);
                     return metricsDTO;
                 })
