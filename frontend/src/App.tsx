@@ -11,6 +11,7 @@ import {
 } from "recharts";
 interface DeviceData {
   deviceId: string;
+  deviceName:string;
   voltage: number;
   std: number;
   variationPercent: number;
@@ -23,7 +24,7 @@ interface DevicesPayload {
 
 export function App() {
   const [chartData, setChartData] = useState<
-    Record<string, { time: string; voltage: number }[]>
+    Record<string, { time: string; voltage: number; deviceName: string }[]>
   >({});
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function App() {
 
         const payload: Record<string, DeviceData[]> = await res.json();
 
-        const initialData: Record<string, { time: string; voltage: number }[]> =
+        const initialData: Record<string, { time: string; voltage: number; deviceName: string }[]> =
           {};
 
         Object.keys(payload).forEach((deviceId) => {
@@ -51,6 +52,7 @@ export function App() {
               second: "2-digit",
             }),
             voltage: entry.voltage,
+            deviceName: entry.deviceName
           }));
         });
 
@@ -89,6 +91,7 @@ export function App() {
               second: "2-digit",
             }),
             voltage: Number(device.voltage),
+            deviceName: device.deviceName
           });
 
           updated[device.deviceId] = current;
@@ -116,12 +119,12 @@ export function App() {
       </header>
 
       <div className="charts-grid">
-        {Object.keys(chartData).map((chartKey, index) => {
+        {Object.keys(chartData).map((chartKey) => {
           const data = chartData[chartKey];
           return (
             <div key={chartKey} className="chart-card">
               <div className="chart-header">
-                <h3 className="chart-title">{`Sensor ${index + 1}`}</h3>
+                <h3 className="chart-title">{data[data.length - 1].voltage}</h3>
                 <div className="chart-stats">
                   <span className="stat-label">Atual:</span>
                   <span className="stat-value">
