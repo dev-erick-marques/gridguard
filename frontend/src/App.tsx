@@ -14,6 +14,7 @@ interface DeviceData {
   voltage: number;
   std: number;
   variationPercent: number;
+  timestamp: string;
 }
 
 interface DevicesPayload {
@@ -21,45 +22,84 @@ interface DevicesPayload {
 }
 
 export function App() {
-  const [chartData, setChartData] = useState<Record<string, { time: string; voltage: number }[]>>({});
-  const getCurrentTime = () => {
-    const now = new Date();
-    return `${now.getHours().toString().padStart(2, "0")}:${now
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
-  };
+  const [chartData, setChartData] = useState<
+    Record<string, { time: string; voltage: number }[]>
+  >({});
 
-useEffect(() => {
-  const eventSource = new EventSource(
-    "http://localhost:8080/coordinator/stream"
-  );
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/coordinator/history");
 
-  eventSource.onmessage = (event) => {
-    const payload: DevicesPayload = JSON.parse(event.data);
-    console.log(payload);
+        if (!res.ok) {
+          throw new Error("HTTP error " + res.status);
+        }
 
-    setChartData((prevData) => {
-      const newData = { ...prevData };
+        const payload: Record<string, DeviceData[]> = await res.json();
 
-      payload.devices.forEach((device) => {
-        const current = [...(newData[device.deviceId] || [])];
-        if (current.length >= 10) current.shift(); // manter histórico de 10
+        const initialData: Record<string, { time: string; voltage: number }[]> =
+          {};
 
-        current.push({
-          time: getCurrentTime(),
-          voltage: Number(device.voltage), // garante que é número
+        Object.keys(payload).forEach((deviceId) => {
+          const history = payload[deviceId];
+
+          initialData[deviceId] = history.map((entry) => ({
+            time: new Date(entry.timestamp).toLocaleTimeString("pt-BR", {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }),
+            voltage: entry.voltage,
+          }));
         });
 
-        newData[device.deviceId] = current;
+        setChartData(initialData);
+        console.log(initialData);
+        
+      } catch (err) {
+        console.error("Failed to load initial data", err);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
+
+  useEffect(() => {
+    const eventSource = new EventSource(
+      "http://localhost:8080/coordinator/stream"
+    );
+
+    eventSource.onmessage = (event) => {
+      const payload: DevicesPayload = JSON.parse(event.data);
+
+      setChartData((prevData) => {
+        const updated = { ...prevData };
+
+        payload.devices.forEach((device) => {
+          const current = [...(updated[device.deviceId] || [])];
+
+          if (current.length >= 10) current.shift();
+
+          current.push({
+            time: new Date(device.timestamp).toLocaleTimeString("pt-BR", {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }),
+            voltage: Number(device.voltage),
+          });
+
+          updated[device.deviceId] = current;
+        });
+
+        return updated;
       });
+    };
 
-      return newData;
-    });
-  };
-
-  return () => eventSource.close();
-}, []);
+    return () => eventSource.close();
+  }, []);
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
