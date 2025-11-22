@@ -11,7 +11,7 @@ import {
 } from "recharts";
 interface DeviceData {
   deviceId: string;
-  deviceName:string;
+  deviceName: string;
   voltage: number;
   std: number;
   variationPercent: number;
@@ -24,8 +24,20 @@ interface DevicesPayload {
 
 export function App() {
   const [chartData, setChartData] = useState<
-    Record<string, { time: string; voltage: number; deviceName: string }[]>
+    Record<
+      string,
+      {
+        time: string;
+        voltage: number;
+        std: number;
+        variationPercent: number;
+        deviceName: string;
+      }[]
+    >
   >({});
+  const [metric, setMetric] = useState<"voltage" | "std" | "variationPercent">(
+    "voltage"
+  );
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -38,8 +50,16 @@ export function App() {
 
         const payload: Record<string, DeviceData[]> = await res.json();
 
-        const initialData: Record<string, { time: string; voltage: number; deviceName: string }[]> =
-          {};
+        const initialData: Record<
+          string,
+          {
+            time: string;
+            voltage: number;
+            std: number;
+            variationPercent: number;
+            deviceName: string;
+          }[]
+        > = {};
 
         Object.keys(payload).forEach((deviceId) => {
           const history = payload[deviceId];
@@ -51,14 +71,15 @@ export function App() {
               minute: "2-digit",
               second: "2-digit",
             }),
+            std: entry.std,
+            variationPercent: entry.variationPercent,
             voltage: entry.voltage,
-            deviceName: entry.deviceName
+            deviceName: entry.deviceName,
           }));
         });
 
         setChartData(initialData);
         console.log(initialData);
-        
       } catch (err) {
         console.error("Failed to load initial data", err);
       }
@@ -91,7 +112,9 @@ export function App() {
               second: "2-digit",
             }),
             voltage: Number(device.voltage),
-            deviceName: device.deviceName
+            deviceName: device.deviceName,
+            std: device.std,
+            variationPercent: device.variationPercent,
           });
 
           updated[device.deviceId] = current;
@@ -109,14 +132,46 @@ export function App() {
         <div className="header-content">
           <h1 className="dashboard-title">GridGuard</h1>
           <p className="dashboard-subtitle">
-            Sistema de Monitoramento de Tensão em Tempo Real
+            Real-Time Voltage Monitoring System
           </p>
         </div>
         <div className="status-indicator">
           <div className="status-dot"></div>
-          <span>Atualização em tempo real</span>
+          <span>Live Updates</span>
         </div>
       </header>
+      <div className="metric-selector">
+        <label>
+          <input
+            type="radio"
+            name="metric"
+            value="voltage"
+            checked={metric === "voltage"}
+            onChange={() => setMetric("voltage")}
+          />
+          Voltage
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="metric"
+            value="std"
+            checked={metric === "std"}
+            onChange={() => setMetric("std")}
+          />
+          Standart deviation
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="metric"
+            value="variationPercent"
+            checked={metric === "variationPercent"}
+            onChange={() => setMetric("variationPercent")}
+          />
+          Variation
+        </label>
+      </div>
 
       <div className="charts-grid">
         {Object.keys(chartData).map((chartKey) => {
@@ -124,13 +179,21 @@ export function App() {
           return (
             <div key={chartKey} className="chart-card">
               <div className="chart-header">
-                <h3 className="chart-title">{data[data.length - 1].deviceName}</h3>
+                <h3 className="chart-title">
+                  {data[data.length - 1].deviceName}
+                </h3>
                 <div className="chart-stats">
                   <span className="stat-label">Atual:</span>
                   <span className="stat-value">
                     {data.length > 0 &&
-                    typeof data[data.length - 1].voltage === "number"
-                      ? `${data[data.length - 1].voltage.toFixed(2)}V`
+                    typeof data[data.length - 1][metric] === "number"
+                      ? `${data[data.length - 1][metric].toFixed(2)}${
+                          metric === "voltage"
+                            ? "V"
+                            : metric === "variationPercent"
+                            ? "%"
+                            : ""
+                        }`
                       : "--"}
                   </span>
                 </div>
@@ -145,7 +208,13 @@ export function App() {
                     style={{ fontSize: "12px" }}
                   />
                   <YAxis
-                    domain={[200, 240]}
+                    domain={
+                      metric === "voltage"
+                        ? [200, 240]
+                        : metric === "std"
+                        ? [0, 10]
+                        : [0, 5]
+                    }
                     stroke="#8892a6"
                     style={{ fontSize: "12px" }}
                   />
@@ -159,7 +228,7 @@ export function App() {
                   />
                   <Line
                     type="monotone"
-                    dataKey="voltage"
+                    dataKey={metric}
                     stroke="#2e5aff"
                     strokeWidth={2}
                     dot={{ r: 3 }}

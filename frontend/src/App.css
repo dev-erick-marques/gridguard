@@ -154,3 +154,62 @@ body {
     font-size: 28px;
   }
 }
+.metric-selector {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background-color: #1a2332;
+  border: 1px solid #2a3f5f;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(46, 90, 255, 0.1);
+}
+
+.metric-selector label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #8892a6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.metric-selector input[type="radio"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #2a3f5f;
+  border-radius: 50%;
+  background-color: #0f1419;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.metric-selector input[type="radio"]:checked {
+  border-color: #2e5aff;
+}
+
+.metric-selector input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2e5aff 0%, #00d9ff 100%);
+}
+
+.metric-selector label:hover {
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .metric-selector {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
