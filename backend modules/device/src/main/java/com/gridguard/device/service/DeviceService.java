@@ -26,16 +26,26 @@ public class DeviceService {
 
     private final RestTemplate http = new RestTemplate();
     private final Random rand = new Random();
-    private static final String DEVICE_ID = "device-1";
-    private static final String HEARTBEAT_ENDPOINT = "http://localhost:8080/coordinator/heartbeat";
-    private static final long HEARTBEAT_INTERVAL_MS = 1000;
-    private static final double BASE_VOLTAGE = 220.0;
-    private static final double VOLTAGE_VARIATION = 5.0;
     private final AtomicReference<DeviceReason> reason = new AtomicReference<>(DeviceReason.NONE);
     private final AtomicReference<DeviceStatus> status = new AtomicReference<>(DeviceStatus.NORMAL_OPERATION);
     private final AtomicReference<Boolean> rainShockEmitted = new AtomicReference<>(false);
     private final KeyPair keyPair;
     private final CryptoUtils cryptoUtils;
+
+    @Value("${app.device.heartbeat-interval}")
+    private static final long HEARTBEAT_INTERVAL_MS = 1000;
+
+    @Value("${app.device.id}")
+    private String deviceId;
+
+    @Value("${app.device.heartbeat-endpoint}")
+    private String heartbeatEndpoint;
+
+    @Value("${app.device.base-voltage}")
+    private double baseVoltage;
+
+    @Value("${app.device.voltage-variation}")
+    private double voltageVariation;
 
     @Value("${app.device.address}")
     private String deviceAddress;
@@ -59,7 +69,7 @@ public class DeviceService {
         SignedStatusDTO heartbeat = buildHeartbeatPayload();
 
         try {
-            http.postForEntity(HEARTBEAT_ENDPOINT, heartbeat, Void.class);
+            http.postForEntity(heartbeatEndpoint, heartbeat, Void.class);
         } catch (RestClientException e) {
             System.err.println("Failed to send heartbeat");
         }
@@ -86,7 +96,7 @@ public class DeviceService {
     }
 
     private SignedStatusDTO buildHeartbeatPayload() {
-        double voltage = BASE_VOLTAGE + (rand.nextDouble() - 0.5) * VOLTAGE_VARIATION;
+        double voltage = baseVoltage + (rand.nextDouble() - 0.5) * voltageVariation;
         if (reason.get() == DeviceReason.STORM) {
             if (!rainShockEmitted.get()) {
                 voltage = 10_000 + rand.nextInt(10_000);
@@ -94,7 +104,7 @@ public class DeviceService {
             }
         }
         DeviceStatusPayloadDTO payload = new DeviceStatusPayloadDTO(
-                DEVICE_ID,
+                deviceId,
                 voltage,
                 status.get(),
                 reason.get(),
