@@ -1,8 +1,10 @@
 package com.gridguard.coordinator.dto;
 
+import java.time.Instant;
+
 public record DeviceMetricsDTO(
         String deviceId,
-        double mean,
+        double voltage,
         double std,
-        double variationPercent
-) {}
+        double variationPercent,
+        Instant timestamp) {}

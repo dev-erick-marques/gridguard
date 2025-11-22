@@ -1,6 +1,7 @@
 package com.gridguard.coordinator.controller;
 
 
+import com.gridguard.coordinator.dto.DeviceMetricsDTO;
 import com.gridguard.coordinator.dto.DevicesMetricsResponseDTO;
 import com.gridguard.coordinator.dto.SignedStatusDTO;
 import com.gridguard.coordinator.service.CoordinatorService;
@@ -12,10 +13,12 @@ import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/coordinator")
 @RequiredArgsConstructor
+@CrossOrigin("http://localhost:5173/")
 public class CoordinatorController {
     private final CoordinatorService coordinatorService;
 
@@ -36,5 +39,11 @@ public class CoordinatorController {
     @Scheduled(fixedRate = 5000)
     public void refreshMetrics() {
         latestMetrics = coordinatorService.evaluateAllDevicesForInstability();
+    }
+
+    @GetMapping("/history")
+    public Map<String, List<DeviceMetricsDTO>> getHistory() {
+        System.out.println(coordinatorService.getMetricsHistory());
+        return coordinatorService.getMetricsHistory();
     }
 }

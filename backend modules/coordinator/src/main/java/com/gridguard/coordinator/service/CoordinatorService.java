@@ -1,6 +1,7 @@
 package com.gridguard.coordinator.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.gridguard.coordinator.crypto.CryptoUtils;
 import com.gridguard.coordinator.dto.*;
 import com.gridguard.coordinator.enums.Commands;
@@ -13,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -30,6 +32,10 @@ public class CoordinatorService {
     @Setter
     private boolean isShutdown = false;
     private final KeyPair keyPair;
+    private final Cache<String, List<DeviceMetricsDTO>> metricsCache =
+            Caffeine.newBuilder()
+                    .expireAfterWrite(Duration.ofMinutes(10))
+                    .build();
 
 
     public CoordinatorService(
@@ -75,9 +81,9 @@ public class CoordinatorService {
                     DeviceStatusPayloadDTO latest = history.peekLast();
                     assert latest != null;
                     if(!isShutdown) setShutdown(latest.status().equalsIgnoreCase("SHUTDOWN"));
-                    System.out.println(isShutdown);
                     System.out.println(latest.status());
                     String deviceAddress = latest.deviceAddress();
+
 
                     return new DeviceMetricsWithInfo(deviceId, stats.mean, stats.std, variationPercent, isShutdown, deviceAddress);
                 })
@@ -92,20 +98,25 @@ public class CoordinatorService {
                             setShutdown(true);
                         }
                     } else {
-                        if (dto.isShutdown()) {
+                        if (dto.isShutdown()) {;
                             int count = stableCounts.getOrDefault(deviceId, 0) + 1;
                             stableCounts.put(deviceId, count);
 
                             if (count >= 10) {
                                 System.out.println("Device stable for 10 cycles → sending SAFE_RESTART: " + deviceId);
                                 postDeviceCommand(dto.deviceId(), dto.deviceAddress(), Commands.SAFE_RESTART, DeviceReason.NONE);
+                                setShutdown(false);
                                 stableCounts.put(deviceId, 0);
                             }
                         } else {
                             stableCounts.put(deviceId, 0);
                         }
                     }
-                }).map(e -> new DeviceMetricsDTO(e.deviceId(), e.mean(), e.std(), e.variationPercent()))
+                }).map(e -> {
+                    DeviceMetricsDTO metricsDTO = new DeviceMetricsDTO(e.deviceId(), e.mean(), e.std(), e.variationPercent(), Instant.now().truncatedTo(ChronoUnit.MILLIS));
+                    addComputedMetric(metricsDTO);
+                    return metricsDTO;
+                })
                 .toList();
 
         return new DevicesMetricsResponseDTO(metricsList);
@@ -144,4 +155,22 @@ public class CoordinatorService {
 
         restTemplate.postForEntity(address, signed, Void.class);
     }
+    private void addComputedMetric(DeviceMetricsDTO metric) {
+        metricsCache.asMap().compute(metric.deviceId(), (deviceId, history) -> {
+            if (history == null) {
+                history = new ArrayList<>();
+            }
+
+            if (history.size() >= 10) {
+                history.remove(0);
+            }
+
+            history.add(metric);
+            return history;
+        });
+    }
+    public Map<String, List<DeviceMetricsDTO>> getMetricsHistory() {
+        return new HashMap<>(metricsCache.asMap());
+    }
+
 }
