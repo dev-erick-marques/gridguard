@@ -1,0 +1,67 @@
+name: Build and Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: List files
+        run: ls -R
+
+
+      - name: Clean build artifacts on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/backend
+            rm -rf build-temp
+            rm -rf modules/device/src
+            rm -rf modules/coordinator/src
+            rm -f modules/device/pom.xml
+            rm -f modules/coordinator/pom.xml
+
+
+      - name: Copy project to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend/modules/device/src,backend/modules/device/pom.xml,backend/modules/device/Dockerfile,backend/modules/coordinator/src,backend/modules/coordinator/pom.xml,backend/modules/coordinator/Dockerfile,backend/docker-compose.yml"
+          target: ~/backend
+
+
+      - name: SSH and deploy containers
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/backend
+            rm -rf build-temp
+            mkdir -p build-temp/coordinator
+            cp -r modules/coordinator/src build-temp/coordinator/
+            cp modules/coordinator/pom.xml build-temp/coordinator/
+            cp modules/coordinator/Dockerfile build-temp/coordinator/
+
+            for i in 1 2 3 4; do
+              mkdir -p build-temp/device$i
+              cp -r modules/device/src build-temp/device$i/
+              cp modules/device/pom.xml build-temp/device$i/
+              cp modules/device/Dockerfile build-temp/device$i/
+            done
+
+            docker-compose build
+            docker-compose up -d --remove-orphans
