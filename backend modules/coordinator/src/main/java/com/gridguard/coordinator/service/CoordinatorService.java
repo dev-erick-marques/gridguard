@@ -65,7 +65,7 @@ public class CoordinatorService {
         history.addLast(dto);
     }
     @Scheduled(fixedDelay = 5000L)
-    public DevicesMetricsResponseDTO evaluateAllDevicesForInstability() {
+    public DeviceMetricsResponseDTO evaluateAllDevicesForInstability() {
         List<DeviceMetricsDTO> metricsList = cache.asMap().entrySet().stream()
                 .filter(entry -> entry.getValue().size() >= MAX_RECORDS)
                 .map(entry -> {
@@ -83,9 +83,10 @@ public class CoordinatorService {
                     if(!isShutdown) setShutdown(latest.status().equalsIgnoreCase("SHUTDOWN"));
                     System.out.println(latest.status());
                     String deviceAddress = latest.deviceAddress();
+                    String deviceName = latest.deviceName();
 
 
-                    return new DeviceMetricsWithInfo(deviceId, stats.mean, stats.std, variationPercent, isShutdown, deviceAddress);
+                    return new DeviceMetricsWithInfo(deviceId, stats.mean, stats.std, variationPercent, isShutdown, deviceAddress, deviceName);
                 })
                 .peek(dto -> {
                     String deviceId = dto.deviceId();
@@ -113,13 +114,13 @@ public class CoordinatorService {
                         }
                     }
                 }).map(e -> {
-                    DeviceMetricsDTO metricsDTO = new DeviceMetricsDTO(e.deviceId(), e.mean(), e.std(), e.variationPercent(), Instant.now().truncatedTo(ChronoUnit.MILLIS));
+                    DeviceMetricsDTO metricsDTO = new DeviceMetricsDTO(e.deviceName(), e.deviceId(), e.mean(), e.std(), e.variationPercent(), Instant.now().truncatedTo(ChronoUnit.MILLIS));
                     addComputedMetric(metricsDTO);
                     return metricsDTO;
                 })
                 .toList();
 
-        return new DevicesMetricsResponseDTO(metricsList);
+        return new DeviceMetricsResponseDTO(metricsList);
 
     }
 
@@ -139,7 +140,13 @@ public class CoordinatorService {
 
     public void validateSignature(SignedStatusDTO dto){
         var payload = dto.payload();
-        String signingContent = payload.deviceId() + "|" + payload.voltage() + "|" + payload.status() + "|" + payload.reason() + "|" + payload.timestamp() + payload.deviceAddress();
+        String signingContent = payload.deviceId() + "|" +
+                    payload.voltage() + "|" +
+                    payload.status() + "|" +
+                    payload.reason() + "|" +
+                    payload.timestamp() + "|" +
+                    payload.deviceAddress() + "|" +
+                    payload.deviceName();
 
         boolean isValid = cryptoUtils.validate(signingContent, dto.signature(), dto.publicKey());
         if (!isValid) {

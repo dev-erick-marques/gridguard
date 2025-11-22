@@ -2,7 +2,7 @@ package com.gridguard.coordinator.controller;
 
 
 import com.gridguard.coordinator.dto.DeviceMetricsDTO;
-import com.gridguard.coordinator.dto.DevicesMetricsResponseDTO;
+import com.gridguard.coordinator.dto.DeviceMetricsResponseDTO;
 import com.gridguard.coordinator.dto.SignedStatusDTO;
 import com.gridguard.coordinator.service.CoordinatorService;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +27,11 @@ public class CoordinatorController {
         coordinatorService.validateSignature(heartbeat);
         coordinatorService.process(heartbeat.payload());
     }
-    private volatile DevicesMetricsResponseDTO latestMetrics = new DevicesMetricsResponseDTO(List.of());
+    private volatile DeviceMetricsResponseDTO latestMetrics = new DeviceMetricsResponseDTO(List.of());
 
 
     @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<DevicesMetricsResponseDTO> streamMetrics() {
+    public Flux<DeviceMetricsResponseDTO> streamMetrics() {
         return Flux.interval(Duration.ofSeconds(5))
                 .map(tick -> latestMetrics);
     }

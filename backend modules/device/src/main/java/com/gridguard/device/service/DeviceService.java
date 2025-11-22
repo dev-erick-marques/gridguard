@@ -30,7 +30,7 @@ public class DeviceService {
     private static final String HEARTBEAT_ENDPOINT = "http://localhost:8080/coordinator/heartbeat";
     private static final long HEARTBEAT_INTERVAL_MS = 1000;
     private static final double BASE_VOLTAGE = 220.0;
-    private static final double VOLTAGE_VARIATION = 40.0;
+    private static final double VOLTAGE_VARIATION = 5.0;
     private final AtomicReference<DeviceReason> reason = new AtomicReference<>(DeviceReason.NONE);
     private final AtomicReference<DeviceStatus> status = new AtomicReference<>(DeviceStatus.NORMAL_OPERATION);
     private final AtomicReference<Boolean> rainShockEmitted = new AtomicReference<>(false);
@@ -39,6 +39,9 @@ public class DeviceService {
 
     @Value("${app.device.address}")
     private String deviceAddress;
+
+    @Value("${app.device.name}")
+    private String deviceName;
 
     public DeviceService(CryptoUtils cryptoUtils) {
         this.cryptoUtils = cryptoUtils;
@@ -96,10 +99,11 @@ public class DeviceService {
                 status.get(),
                 reason.get(),
                 deviceAddress,
+                deviceName,
                 Instant.now().truncatedTo(ChronoUnit.MILLIS)
         );
 
-        String signingContent = payload.deviceId() + "|" + payload.voltage() + "|" + payload.status() + "|" + payload.reason() + "|" + payload.timestamp() + deviceAddress;
+        String signingContent = payload.deviceId() + "|" + payload.voltage() + "|" + payload.status() + "|" + payload.reason() + "|" + payload.timestamp() + "|" + deviceAddress + "|" + deviceName;
         SignedData signedData = cryptoUtils.sign(signingContent, keyPair.getPrivate(), keyPair.getPublic());
 
         return new SignedStatusDTO(payload, signedData.publicKey(), signedData.signature());

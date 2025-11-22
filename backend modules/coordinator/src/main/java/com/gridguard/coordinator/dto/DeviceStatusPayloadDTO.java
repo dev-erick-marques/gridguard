@@ -10,5 +10,6 @@ public record DeviceStatusPayloadDTO(
         String status,
         DeviceReason reason,
         String deviceAddress,
+        String deviceName,
         Instant timestamp
 ) {}

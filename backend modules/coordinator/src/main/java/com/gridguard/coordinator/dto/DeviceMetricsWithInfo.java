@@ -6,5 +6,6 @@ public record DeviceMetricsWithInfo(
         double std,
         double variationPercent,
         boolean isShutdown,
-        String deviceAddress
+        String deviceAddress,
+        String deviceName
 ) {}
