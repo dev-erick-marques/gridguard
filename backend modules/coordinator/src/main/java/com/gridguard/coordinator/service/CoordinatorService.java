@@ -114,7 +114,7 @@ public class CoordinatorService {
                         }
                     }
                 }).map(e -> {
-                    DeviceMetricsDTO metricsDTO = new DeviceMetricsDTO( e.deviceId(), e.deviceName(), e.mean(), e.std(), e.variationPercent(), Instant.now().truncatedTo(ChronoUnit.MILLIS));
+                    DeviceMetricsDTO metricsDTO = new DeviceMetricsDTO( e.deviceId(), e.deviceName(), e.mean(), e.std(), e.variationPercent(), Instant.now().truncatedTo(ChronoUnit.MILLIS), isShutdown);
                     addComputedMetric(metricsDTO);
                     return metricsDTO;
                 })
@@ -140,13 +140,7 @@ public class CoordinatorService {
 
     public void validateSignature(SignedStatusDTO dto){
         var payload = dto.payload();
-        String signingContent = payload.deviceId() + "|" +
-                    payload.voltage() + "|" +
-                    payload.status() + "|" +
-                    payload.reason() + "|" +
-                    payload.timestamp() + "|" +
-                    payload.deviceAddress() + "|" +
-                    payload.deviceName();
+        String signingContent = payload.deviceId() + "|" + payload.voltage() + "|" + payload.status() + "|" + payload.reason() + "|" + payload.timestamp() + "|" + payload.deviceAddress() + "|" + payload.deviceName();
 
         boolean isValid = cryptoUtils.validate(signingContent, dto.signature(), dto.publicKey());
         if (!isValid) {

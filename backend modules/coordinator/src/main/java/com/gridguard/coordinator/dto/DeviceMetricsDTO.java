@@ -8,4 +8,5 @@ public record DeviceMetricsDTO(
         double voltage,
         double std,
         double variationPercent,
-        Instant timestamp) {}
+        Instant timestamp,
+        boolean isShutdown) {}
