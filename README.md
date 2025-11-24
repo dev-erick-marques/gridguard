@@ -86,35 +86,25 @@ This prevents:
 --- 
 ## 📘 Statistical Calculations
 
-**1. Mean**
-$$
-\mu = \frac{1}{N} \sum_{i=1}^{N} x_i
-$$
+### 1. Mean
+$$ \mu = \frac{1}{N} \sum_{i=1}^{N} x_i $$
 
-**2. Variance**
-$$
-\sigma^{2} = \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu)^2
-$$
+### 2. Variance
+$$ \sigma^{2} = \frac{1}{N} \sum_{i=1}^{N} (x_i - \mu)^2 $$
 
-**3. Standard Deviation**
-$$
-\sigma = \sqrt{\sigma^{2}}
-$$
+### 3. % Standard Deviation
+$$ \sigma = \sqrt{\sigma^{2}} $$
 
-**4. Variation Percentage (Coefficient of Variation)**
-$$
-CV(\%) = \left( \frac{\sigma}{\mu} \right) \times 100
-$$
+### 4. Variation Percentage (Coefficient of Variation %)
+$$ CV = \left( \frac{\sigma}{\mu} \right) \times 100 $$
 
-**5. Instability Trigger Rule**
-$$
-CV(\%) > \text{threshold}
-$$
 
-**6. Stable Cycle Requirement**
-$$
-\text{stable cycles} \geq 10
-$$
+### 5. Instability Trigger Rule %
+$$ CV > \text{threshold} $$
+
+
+### 6. Stable Cycle Requirement
+$$ \text{stable cycles} \geq 10 $$
 
 ---
 ## ⚡ Storm Spike Simulation & Weather-Based Shutdown Logic
